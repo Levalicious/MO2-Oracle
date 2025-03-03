@@ -136,7 +136,8 @@ class Oracle:
             self._lgraph._edges[omodhashes[i] + omodhashes[i + 1]].dist.observe(result)
         self._log.info('Run recorded')
 
-    def sample(self, hi: bool = True, iters: int = 10, infogain: bool = False) -> None:
+    def sample(self, mlist: IModList, hi: bool = True, iters: int = 10, infogain: bool = False) -> None:
+        self.refresh(mlist)
         hegraph = self._hgraph.enabled(self._mmap)
         legraph = self._lgraph.enabled(self._mmap)
         order = self.btderive(hegraph if hi else legraph, iters, infogain)
@@ -177,11 +178,11 @@ class Oracle:
             for node2 in graph._nodes.values():
                 if node.hash != node2.hash:
                     if not infogain:
-                        weights[node.hash][0] += graph._edges[node.hash + node2.hash].dist.P[0]
-                        weights[node.hash][1] += graph._edges[node2.hash + node.hash].dist.P[0]
+                        ws = [graph._edges[node.hash + node2.hash].dist.P[0], graph._edges[node2.hash + node.hash].dist.P[0]]
                     else:
-                        weights[node.hash][0] += graph._edges[node.hash + node2.hash].dist.H
-                        weights[node.hash][1] += graph._edges[node2.hash + node.hash].dist.H
+                        ws = [graph._edges[node.hash + node2.hash].dist.H, graph._edges[node2.hash + node.hash].dist.H]
+                    weights[node.hash][0] += ws[0]
+                    weights[node.hash][1] += ws[1]
         for i in range(iters):
             scores = btiter(scores, weights)
         scored = [(scores[h], h) for h in scores.keys()]

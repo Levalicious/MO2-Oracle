@@ -82,6 +82,6 @@ class OptimalSamplePlugin(IPluginTool):
     
     def display(self) -> None:
         itercnt, ok = QInputDialog.getInt(None, 'Optimal Sampler', 'Enter a number of iterations to run:')
-        self._oracle.sample(iters=itercnt)
+        self._oracle.sample(self._modlist, iters=itercnt)
         pluginsync(self._organizer, self._modlist, self._pluginlist)
         self._log.info(f'Order derived')

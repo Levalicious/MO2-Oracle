@@ -135,6 +135,7 @@ class OraclePlugin(IPluginTool):
                 if reply == QMessageBox.StandardButton.No:
                     res = False
             self._oracle.observe(self._modlist, res)
+            self._oracle.save()
 
     def onInstall(self, mod: IModInterface) -> None:
         self._oracle.add_mod(mod, self._modlist)

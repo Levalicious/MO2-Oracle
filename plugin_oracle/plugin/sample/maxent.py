@@ -82,6 +82,6 @@ class InfoGainSamplePlugin(IPluginTool):
     
     def display(self) -> None:
         itercnt, ok = QInputDialog.getInt(None, 'InfoGain Sampler', 'Enter a number of iterations to run:')
-        self._oracle.sample(iters=itercnt, infogain=True)
+        self._oracle.sample(self._modlist, iters=itercnt, infogain=True)
         pluginsync(self._organizer, self._modlist, self._pluginlist)
         self._log.info(f'Order derived')
