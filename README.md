@@ -13,6 +13,8 @@ The IDs are calculated by taking directory hashes of the contents of each mod. W
 The slowness _is_ an issue, and I will be working on it, but considering that over the course of today I got it from "adding > 20 minutes to MO2's startup time" down to "eh bout 3 minutes" I'm taking that as a win. 
 
 
+To install this, place the `plugin_oracle` folder inside your MO2 plugins folder and restart MO2.
+
 ## What It Does
 
 ### Training:
