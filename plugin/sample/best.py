@@ -6,6 +6,7 @@ from ...util.mod.minfo import OMod
 from ...base.oracle.oracle import Oracle
 from ..oracle import OraclePlugin
 from ...util.log import PluginLogger, getLogger
+from ...base.sync import pluginsync
 
 class OptimalSamplePlugin(IPluginTool):
     _organizer: IOrganizer
@@ -82,4 +83,5 @@ class OptimalSamplePlugin(IPluginTool):
     def display(self) -> None:
         itercnt, ok = QInputDialog.getInt(None, 'Optimal Sampler', 'Enter a number of iterations to run:')
         self._oracle.sample(iters=itercnt)
+        pluginsync(self._organizer, self._modlist, self._pluginlist)
         self._log.info(f'Order derived')
