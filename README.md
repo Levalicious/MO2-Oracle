@@ -1,5 +1,4 @@
 # PoC
-===
 
 This plugin is NOT READY FOR SERIOUS USAGE.
 
@@ -15,7 +14,6 @@ The slowness _is_ an issue, and I will be working on it, but considering that ov
 
 
 ## What It Does
----
 
 ### Training:
 This plugin is not LOOT. It does not come with a database of known relations. That's for future work, and so is the ability to integrate that information. As such, this plugin needs to be trained. It maintains a set of probability distributions, and on each game run it will check the exit code provided by MO2. If it's a crash, that'll be recorded, and if the game exits successfully the plugin will prompt you for a confirmation that the load order worked as intended. 
@@ -62,9 +60,11 @@ okay, I tried. I take no responsibility if you ignored the above and I messed up
 This learns, which is half the journey, but I have 2 major goals for this plugin.
 
 1. Proper dependency handling
+
 Most mods on Nexus and elsewhere have occasionally fairly deep dependency chains. These _significantly_ constrain load order. Not always, but often, and that is extremely useful here. I mentioned above that with N mods we have N! load orders to try. Even when N is 5, decreasing it by 1 makes a _big_ difference:
 
 5! = 120 load orders
+
 4! = 24 load orders
 
 At higher mod counts this only gets worse. Even a really bad database of explicit dependencies missing entries for 80% of mods would have a huge effect on the amount of learning this plugin needs to do. Plus, this data _is_ available, even if it's a pain to access at times. Nexus has dependencies, although it needs better distinguishing for optional vs required ones. Mods often mark required masters. LOOT exists. Point is, data exists and is available, it just needs to get integrated and used.
