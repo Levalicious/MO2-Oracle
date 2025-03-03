@@ -61,10 +61,13 @@ class OMod:
         self.mod = mod
         self.mlist = mlist
         self._hash: None | bytes = None
+        self._name: None | str = None
     
     @property
     def name(self) -> str:
-        return self.mod.name()
+        if self._name is None:
+            self._name = self.mod.name()
+        return self._name
     
     @property
     def index(self) -> int:

@@ -58,8 +58,16 @@ class Oracle:
         with open(hgraph_path, 'rb') as f:
             self._hgraph = pickle.load(f)
         self._log.info(f'Load complete')
-
+    
+    def refresh(self, mlist: IModList) -> None:
+        mnames = [mname for mname in mlist.allModsByProfilePriority()]
+        for omod in self._mmap.values():
+            if omod.name in mnames:
+                omod.mod = mlist.getMod(omod.name)
+                omod.mlist = mlist
+    
     def resolve(self, mlist: IModList) -> None:
+        self.refresh(mlist)
         mnames = [mname for mname in mlist.allModsByProfilePriority()]
         for omod in self._mmap.values():
             if omod.name in mnames:
@@ -104,6 +112,7 @@ class Oracle:
                 self._log.warning(f'{mname}')
     
     def observe(self, mlist: IModList, result: bool) -> None:
+        self.refresh(mlist)
         omodhashes: list[bytes] = list(self._mmap.keys())
         omodhashes = list(filter(lambda h: self._mmap[h].state, omodhashes))
         omodhashes.sort(key=lambda h: self._mmap[h].index)
@@ -112,7 +121,6 @@ class Oracle:
             omod = self._mmap[h]
             self._log.info(f'{omod.name} : {omod.hash.hex()}')
         for ind, h in enumerate(omodhashes):
-            #
             self._lgraph._nodes[h].dist.observe(result) # type: ignore
             for ind2, h2 in enumerate(omodhashes):
                 if ind == ind2:
