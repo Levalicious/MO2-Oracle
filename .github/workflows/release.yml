@@ -26,16 +26,18 @@ jobs:
           import re, os
           with open('plugin_oracle/plugin/oracle.py', encoding='utf-8') as f:
               content = f.read()
-          m = re.search(r'_version\s*=\s*VersionInfo\(([^)]+)\)', content)
+          m = re.search(r'_version:\sVersionInfo\s*=\s*VersionInfo\(([^)]+)\)', content)
+          if not m:
+              raise RuntimeError("Failed to extract plugin version")
           a = [x.strip() for x in m.group(1).split(',')]
-          s = 'a' if 'ALPHA' in a[4] else ('b' if 'BETA' in a[4] else ('rc' if 'CANDIDATE' in a[4] else ''))
+          s = 'a' if 'ALPHA' in a[-1] else ('b' if 'BETA' in a[-1] else ('rc' if 'CANDIDATE' in a[-1] else ''))
           version = f'{a[0]}.{a[1]}.{a[2]}.{a[3]}{s}'
           def extract_support(key):
-              m = re.search(rf'{key}\s*=\s*VersionInfo\(([^)]+)\)', content)
-              if m:
-                  args = [x.strip() for x in m.group(1).split(',')[:3]]
-                  return '.'.join(args)
-              return ''
+              m = re.search(rf'{key}:\sVersionInfo\s*=\s*VersionInfo\(([^)]+)\)', content)
+              if not m:
+                  raise RuntimeError(f'Failed to extract plugin {key}')
+              args = [x.strip() for x in m.group(1).split(',')[:3]]
+              return '.'.join(args)
           min_support = extract_support('minversion')
           max_support = extract_support('maxversion')
           print(version, min_support, max_support)
