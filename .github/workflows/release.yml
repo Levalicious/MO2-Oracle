@@ -93,6 +93,7 @@ jobs:
                   json.dump(data, f, indent=4)
           else:
               print(f"Version {version} already present in plugin_definition.json")
+              exit(1)
       - name: Commit Update
         run: |
           git config user.name "github-actions[bot]"
