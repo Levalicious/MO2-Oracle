@@ -1,9 +1,9 @@
-from math import gcd, log2
+from math import log2
 
 class Bernoulli:
     def __init__(self) -> None:
-        self.C = [0] * 2
-        self.P = [0.5] * 2
+        self.C: list[int] = [0] * 2
+        self.P: list[float] = [0.5] * 2
         self.H: float = -1
 
     def observe(self, v: bool) -> None:
@@ -16,4 +16,4 @@ class Bernoulli:
             return
         self.P[0] = self.C[0] / self.C[1]
         self.P[1] = 1 - self.P[0]
-        self.H = -sum(p * log2(p) for p in self.P if p > 0)
+        self.H = -sum(p * log2(p) for p in self.P if p > 0) # pyright: ignore [reportConstantRedefinition]

@@ -1,11 +1,13 @@
-from mobase import IPluginTool, IOrganizer, IModList, IPluginList, VersionInfo, PluginSetting, IModInterface
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QMessageBox, QMainWindow, QInputDialog
+from mobase import IPluginTool, IOrganizer, IModList, IPluginList, VersionInfo, PluginSetting, IModInterface # pyright: ignore [reportMissingModuleSource]
 from PyQt6.QtCore import QDir
-from ..util.mod.minfo import OMod
-from ..base.oracle.oracle import Oracle
-from ..util.log import PluginLogger, getLogger
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QMessageBox, QMainWindow
+
 import os
+
+from plugin_oracle.base.window import OracleWidget
+from plugin_oracle.util.log import PluginLogger, getLogger
+from plugin_oracle.base.oracle.oracle import Oracle
 
 class OraclePlugin(IPluginTool):
     _organizer: IOrganizer
@@ -13,16 +15,14 @@ class OraclePlugin(IPluginTool):
     _pluginlist: IPluginList
     _version: VersionInfo = VersionInfo(0, 0, 0)
 
-    def __init__(self, oracle: Oracle) -> None:
-        self._log = PluginLogger(getLogger(__name__), {'name': self.name()})
-        self._oracle = oracle
+    def __init__(self) -> None:
+        self._log: PluginLogger = PluginLogger(getLogger(__name__), {'name': self.name()})
         super().__init__()
 
     def checkversion(self, silent: bool = False) -> bool:
         minversion: VersionInfo = VersionInfo(2, 5, 2)
         maxversion: VersionInfo = VersionInfo(2, 5, 2)
         exceptions: list[VersionInfo] = []
-        self._log.info(self._organizer.getPluginDataPath() + '/' + self.name())
 
         appVersion = self._organizer.appVersion()
 
@@ -44,14 +44,18 @@ class OraclePlugin(IPluginTool):
     
     def init(self, organizer: IOrganizer) -> bool:
         self._organizer = organizer
+
         self._modlist = organizer.modList()
         self._pluginlist = organizer.pluginList()
-        self._oracle.path = organizer.getPluginDataPath() + '/' + self.name()
-        
-        self._organizer.onUserInterfaceInitialized(self.onInit)
-        self._organizer.onAboutToRun(self.onRun)
-        self._organizer.onFinishedRun(self.onExit)
-        self._modlist.onModInstalled(self.onInstall)
+        self.oracle: Oracle = Oracle(organizer.getPluginDataPath() + '/' + self.name())        
+        self._wdgt: OracleWidget | None = None
+        res = self._organizer.onUserInterfaceInitialized(self.onInit)
+        res |= self._organizer.onAboutToRun(self.onRun)
+        res |= self._organizer.onFinishedRun(self.onExit)
+        res |= self._modlist.onModInstalled(self.onInstall)
+        if not res:
+            self._log.error('Failed to register plugin handlers!')
+            return False
         
         return self.checkversion()
     
@@ -85,34 +89,19 @@ class OraclePlugin(IPluginTool):
         return QIcon()
     
     def display(self) -> None:
-        mods = self._modlist.allModsByProfilePriority()
-        omods = self._oracle._mmap.values()
-        prefix, ok = QInputDialog.getText(None, 'Prefix Prompt', 'Enter prefix:')
-        if not ok or not prefix:
-            QMessageBox.information(None, 'Oracle', 'Operation canceled or no prefix provided.', QMessageBox.StandardButton.Ok)
-            return
-        testmod = next((m for m in omods if m.name.lower().startswith(prefix.lower())), None)
-        if not testmod:
-            QMessageBox.information(
-                None,
-                'Oracle',
-                'No mod found',
-                QMessageBox.StandardButton.Ok
-            )
-            return
-        QMessageBox.information(
-            None,
-            'Oracle',
-            testmod.name + ':' + testmod.hash.hex(),
-            QMessageBox.StandardButton.Ok
-        )
+        self.oracle.resolve(self._modlist, self._organizer, False)
+        if self._wdgt is not None:
+            _ = self._wdgt.close()
+            del self._wdgt
+        self._wdgt = OracleWidget(self.oracle, [self.sample], self.predict, self.permutation)
+        self._wdgt.show()
 
-    def onInit(self, window: QMainWindow) -> None:
-        self._oracle.load()
-        self._oracle.resolve(self._modlist)
-    
-    def onRun(self, path: str, dir: QDir, args: str) -> bool:
-        self._oracle.resolve(self._modlist)
+    def onInit(self, _: QMainWindow) -> None:
+        self.oracle.load()
+        self.oracle.resolve(self._modlist, self._organizer)
+
+    def onRun(self, _: str, _1: QDir, _2: str) -> bool:
+        self.oracle.resolve(self._modlist, self._organizer, False)
         return True
 
     def onExit(self, game: str, code: int) -> None:
@@ -124,17 +113,27 @@ class OraclePlugin(IPluginTool):
         if game in whitelist:
             res = code == 0
             if res:
-                reply = QMessageBox.question(
-                    None,  # parent widget
-                    'CrashStatus',  # dialog title
-                    'Please confirm that this load order works:',  # dialog message
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,  # buttons to show
-                    QMessageBox.StandardButton.Yes  # default button
-                )
+                reply = QMessageBox.question(None,'CrashStatus',
+                    'Please confirm that this load order works:',
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.Yes)
 
                 if reply == QMessageBox.StandardButton.No:
                     res = False
-            self._oracle.observe(self._modlist, res)
-
+            self.oracle.observe(res, self._modlist, self._organizer)
+            self.oracle.save()
+        
     def onInstall(self, mod: IModInterface) -> None:
-        self._oracle.add_mod(mod, self._modlist)
+        _ = self.oracle.addMod(mod, self._organizer)
+    
+    def sample(self, random: bool = False) -> None:
+        if random:
+            self.oracle.samplerandom(self._modlist, self._pluginlist, self._organizer)
+        else:
+            self.oracle.sample(self._modlist, self._pluginlist, self._organizer)
+    
+    def predict(self) -> str:
+        return self.oracle.predict(self._modlist, self._organizer)
+    
+    def permutation(self) -> list[bytes]:
+        return self.oracle.permutation(self._modlist, self._organizer)

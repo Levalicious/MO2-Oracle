@@ -1,10 +1,10 @@
-from mobase import GamePlugins, IOrganizer, IModList, IPluginList, IModInterface, ModState, PluginState
+from mobase import GamePlugins, IOrganizer, IModList, IPluginList, PluginState # pyright: ignore [reportMissingModuleSource]
 import re
 
 class Plugin:
-    def __init__(self, priority, name) -> None:
-        self.priority = priority
-        self.name = name
+    def __init__(self, priority: int, name: str) -> None:
+        self.priority: int = priority
+        self.name: str = name
 
         # add exceptions here:
         self.dict: dict[str, list[str]] = {
@@ -12,7 +12,7 @@ class Plugin:
             # 'mod2 regex': ['substr in 1st', 'substr in 2nd', 'etc.']
         }
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: 'Plugin') -> bool:
         if self.priority != other.priority:
             return self.priority < other.priority
 
@@ -39,8 +39,8 @@ class Plugin:
                 'extension',
                 'ext',
                 'ng',
-                'conversion'
-                'fix'
+                'conversion',
+                'fix',
                 'remastered']
         for pattern in patts:
             if re.search(pattern, lc_a) != re.search(pattern, lc_b):
