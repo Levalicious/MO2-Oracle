@@ -1,4 +1,4 @@
-from mobase import IPluginTool, IOrganizer, IModList, IPluginList, VersionInfo, PluginSetting, IModInterface # pyright: ignore [reportMissingModuleSource]
+from mobase import ReleaseType, IPluginTool, IOrganizer, IModList, IPluginList, VersionInfo, PluginSetting, IModInterface # pyright: ignore [reportMissingModuleSource]
 from PyQt6.QtCore import QDir
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMessageBox, QMainWindow
@@ -13,7 +13,7 @@ class OraclePlugin(IPluginTool):
     _organizer: IOrganizer
     _modlist: IModList
     _pluginlist: IPluginList
-    _version: VersionInfo = VersionInfo(0, 0, 0)
+    _version: VersionInfo = VersionInfo(0, 0, 0, 0, ReleaseType.ALPHA)
 
     def __init__(self) -> None:
         self._log: PluginLogger = PluginLogger(getLogger(__name__), {'name': self.name()})

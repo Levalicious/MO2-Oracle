@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: |
+          mkdir plugin_oracle\lib
+          pip install -r plugin.req -t plugin_oracle\lib
+      - name: Version
+        id: extract_version
+        shell: python
+        run: |
+          import re, os
+          with open('plugin_oracle/plugin/oracle.py', encoding='utf-8') as f:
+              content = f.read()
+          m = re.search(r'_version\s*=\s*VersionInfo\(([^)]+)\)', content)
+          a = [x.strip() for x in m.group(1).split(',')]
+          s = 'a' if 'ALPHA' in a[4] else ('b' if 'BETA' in a[4] else ('rc' if 'CANDIDATE' in a[4] else ''))
+          version = f'{a[0]}.{a[1]}.{a[2]}.{a[3]}{s}'
+          def extract_support(key):
+              m = re.search(rf'{key}\s*=\s*VersionInfo\(([^)]+)\)', content)
+              if m:
+                  args = [x.strip() for x in m.group(1).split(',')[:3]]
+                  return '.'.join(args)
+              return ''
+          min_support = extract_support('minversion')
+          max_support = extract_support('maxversion')
+          print(version, min_support, max_support)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'version={version}\n')
+              out.write(f'min_support={min_support}\n')
+              out.write(f'max_support={max_support}\n')
+      - name: Compress
+        run: |
+          powershell -Command "Compress-Archive -Path plugin_oracle -DestinationPath plugin_oracle-${{ steps.extract_version.outputs.version }}.zip"
+      - name: Create artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v${{ steps.extract_version.outputs.version }}-${{ github.run_number }}
+          path: plugin_oracle-${{ steps.extract_version.outputs.version }}.zip
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.extract_version.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes "Release v${VERSION}" \
+            "plugin_oracle-${VERSION}.zip"
+      - name: Update Plugin Definition
+        shell: python
+        run: |
+          import json, os
+          from datetime import date
+          version = os.environ.get('VERSION') or '${{ steps.extract_version.outputs.version }}'
+          min_support = os.environ.get('MIN_SUPPORT') or '${{ steps.extract_version.outputs.min_support }}'
+          max_support = os.environ.get('MAX_SUPPORT') or '${{ steps.extract_version.outputs.max_support }}'
+          repo = os.environ.get('GITHUB_REPOSITORY', '')
+          repo_url = f'https://github.com/{repo}' if repo else ''
+          download_url = f'{repo_url}/releases/download/v{version}/plugin_oracle-{version}.zip' if repo_url else ''
+          definition_path = 'plugin_definition.json'
+          today = date.today().isoformat()
+          with open(definition_path, encoding='utf-8') as f:
+              data = json.load(f)
+          if not any(v['Version'] == version for v in data['Versions']):
+              new_entry = {
+                  "Version": version,
+                  "Released": today,
+                  "MinSupport": min_support,
+                  "MaxSupport": max_support,
+                  "MinWorking": min_support,
+                  "MaxWorking": max_support,
+                  "DownloadUrl": download_url,
+                  "PluginPath": ["plugin_oracle"],
+                  "LocalePath": [],
+                  "DataPath": ["data/Oracle"],
+                  "ReleaseNotes": []
+              }
+              data['Versions'].append(new_entry)
+              with open(definition_path, 'w', encoding='utf-8') as f:
+                  json.dump(data, f, indent=4)
+          else:
+              print(f"Version {version} already present in plugin_definition.json")
+      - name: Commit Update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add plugin_definition.json
+          git commit -m "Update plugin_definition.json for v${{ steps.extract_version.outputs.version }} [CI]" || echo "No changes to commit"
+          git fetch origin master
+          git checkout master
+          git reset --hard HEAD
+          git merge $GITHUB_SHA --no-edit
+          git push origin master --force
+      - name: Automerge
+        run: |
+          git fetch origin dev || git checkout -b dev
+          git checkout dev
+          git merge master --no-edit
+          git push origin dev
