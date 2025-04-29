@@ -108,5 +108,5 @@ jobs:
         run: |
           git fetch origin develop || git checkout -b develop
           git checkout develop
-          git merge master --no-edit
+          git merge master --no-edit --allow-unrelated-histories
           git push origin develop
