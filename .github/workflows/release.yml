@@ -41,7 +41,6 @@ jobs:
               return '.'.join(args)
           min_support = extract_support('minversion')
           max_support = extract_support('maxversion')
-          print(version, min_support, max_support)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f'version={version}\n')
               out.write(f'min_support={min_support}\n')
