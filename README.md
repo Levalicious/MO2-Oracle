@@ -1,4 +1,4 @@
-# PoC
+# Automated Mod Dependency Inference
 
 ~This plugin is NOT READY FOR SERIOUS USAGE.~ It's getting there. Still purely experimental, but mildly coherent and should generally refrain from setting everything on fire.
 
@@ -53,9 +53,9 @@ okay, I tried. I take no responsibility if you ignored the above and I messed up
 
 2. I still want to network this. The People(tm) can play more hours of Skyrim per hour than I can alone. Also, now that dependency structure is explicit and we have an explicit formulation for testing it, this means that instances can check the data they are supplied and call out misbehaving network participants (i.e. reporting invalid follow sets).
 
-3. We handle mod priority weirdly. First we set the priority of each mod, then we sync the plugins to match it, excepting plugin-defined dependency structure which overrides our ordering, i.e. master flags. There's definitely more coherent ways to handle this
+3. We handle mod priority weirdly. First we set the priority of each mod, then we sync the plugins to match it, excepting plugin-defined dependency structure which overrides our ordering, i.e. master flags. There's definitely more coherent ways to handle this, but I need to think more/get some input on how to treat plugin order in relation to mod order, or if I even _can_ treat them as strongly related in the general case.
 
-4. Follow sets are big and ugly. They're currently _extremely_ heavily redundant, unnecessarily so. Training/sampling/refinement will eliminate a significant number of those redundancies, but many will remain. Before I even consider networking for real, the db impl will need to be changed so that at a minimum, on-disk size will be small so we have a compressed format to relay.
+4. Follow sets are big and ugly. They're currently _extremely_ heavily redundant, and unnecessarily so. Training/sampling/refinement will eliminate a significant number of those redundancies, but many will remain. Before I even consider networking for real, the db impl will need to be changed so that at a minimum, on-disk size will be small so we have a compressed format to relay.
 
 5. Until this is networked, I need to make it pull in LOOT and/or provide an initial database for people to use for it. If people want to help with the latter, send me a mod order you consider 'working'. Feel free to remove mods you don't want the world to see from the order, so long as you don't rearrange the priorities. I've gotten started on some utilities to _automatically_ test mod orders, by doing a bit of computer vision & taking over the keyboard & mouse, but that's far off from usability, much less usefulness.
 
