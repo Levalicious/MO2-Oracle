@@ -49,16 +49,6 @@ jobs:
       - name: Compress
         run: |
           powershell -Command "Compress-Archive -Path plugin_oracle -DestinationPath plugin_oracle-${{ steps.extract_version.outputs.version }}.zip"
-      - name: Create artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: v${{ steps.extract_version.outputs.version }}-${{ github.run_number }}
-          path: plugin_oracle-${{ steps.extract_version.outputs.version }}.zip
-      - name: Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "v${{ steps.extract_version.outputs.version }}" --title "v${{ steps.extract_version.outputs.version }}" --notes "Release v${{ steps.extract_version.outputs.version }}" "plugin_oracle-${{ steps.extract_version.outputs.version }}.zip"
       - name: Update Plugin Definition
         shell: python
         run: |
@@ -94,6 +84,16 @@ jobs:
           else:
               print(f"Version {version} already present in plugin_definition.json")
               exit(1)
+      - name: Create artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v${{ steps.extract_version.outputs.version }}-${{ github.run_number }}
+          path: plugin_oracle-${{ steps.extract_version.outputs.version }}.zip
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.extract_version.outputs.version }}" --title "v${{ steps.extract_version.outputs.version }}" --notes "Release v${{ steps.extract_version.outputs.version }}" "plugin_oracle-${{ steps.extract_version.outputs.version }}.zip"
       - name: Commit Update
         run: |
           git config user.name "github-actions[bot]"
