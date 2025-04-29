@@ -2,7 +2,9 @@
 
 ~This plugin is NOT READY FOR SERIOUS USAGE.~ It's getting there. Still purely experimental, but mildly coherent and should generally refrain from setting everything on fire.
 
-
+# BACK UP YOUR LOAD ORDER (PLUGIN AND MOD) BEFORE TRYING THIS
+# BACK UP YOUR LOAD ORDER (PLUGIN AND MOD) BEFORE TRYING THIS
+# BACK UP YOUR LOAD ORDER (PLUGIN AND MOD) BEFORE TRYING THIS
 
 We ID mods by file content, not by mod name, as we need to explicitly distinguish versions. 
 
@@ -44,8 +46,7 @@ Generates a load order, like above. However, here the goal isn't to generate a r
 # BACK UP YOUR LOAD ORDER (PLUGIN AND MOD) BEFORE TRYING THIS
 # BACK UP YOUR LOAD ORDER (PLUGIN AND MOD) BEFORE TRYING THIS
 
-okay, I tried. I take no responsibility if you ignored the above and I messed up your mods.
-
+okay, I tried. I take no responsibility if you ignored the repeated warnings and I messed up your mods.
 
 ### Future Plans
 
