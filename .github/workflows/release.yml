@@ -106,7 +106,5 @@ jobs:
           git push origin master --force
       - name: Automerge
         run: |
-          git fetch origin develop || git checkout -b develop
-          git checkout develop
-          git merge master --no-edit --allow-unrelated-histories
-          git push origin develop
+          git branch -f develop master
+          git push origin develop --force
