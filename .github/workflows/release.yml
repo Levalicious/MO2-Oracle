@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - '**'
+env:
+  PLUGINNAME: 'plugin_oracle'
+  PLUGINPATH: 'data/Oracle'
+
+jobs:
+  release:
+    permissions: write-all
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: |
+          mkdir ${{ env.PLUGINNAME }}\lib
+          pip install -r plugin.req -t ${{ env.PLUGINNAME }}\lib
+      - name: Lint
+        continue-on-error: true
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check --output-format=github
+          src: ${{ env.PLUGINNAME }}
+      - name: Version
+        id: extract_version
+        run: python .github/scripts/get_version.py
+      - name: Compress
+        run: |
+          powershell -Command "Compress-Archive -Path ${{ env.PLUGINNAME }} -DestinationPath ${{ env.PLUGINNAME }}-${{ steps.extract_version.outputs.version }}.zip"
+      - name: Create artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: v${{ steps.extract_version.outputs.version }}-${{ github.run_number }}
+          path: ${{ env.PLUGINNAME }}-${{ steps.extract_version.outputs.version }}.zip
+      - name: Publish
+        if: github.ref == 'refs/heads/master'
+        env:
+          VERSION: ${{ steps.extract_version.outputs.version }}
+          MIN_SUPPORT: ${{ steps.extract_version.outputs.min_support }}
+          MAX_SUPPORT: ${{ steps.extract_version.outputs.max_support }}
+          PLUGINNAME: ${{ env.PLUGINNAME }}
+          PLUGINPATH: ${{ env.PLUGINPATH }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python .github/scripts/publish_release.py
+      - name: Release
+        if: github.ref == 'refs/heads/master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.extract_version.outputs.version }}" --title "v${{ steps.extract_version.outputs.version }}" --notes "Release v${{ steps.extract_version.outputs.version }}" "${{ env.PLUGINNAME }}-${{ steps.extract_version.outputs.version }}.zip"
+      - name: Commit Update
+        if: github.ref == 'refs/heads/master'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add plugin_definition.json
+          git commit -m "Update plugin_definition.json for v${{ steps.extract_version.outputs.version }} [CI]" || echo "No changes to commit"
+          git fetch origin master
+          git checkout master
+          git reset --hard HEAD
+          git merge $GITHUB_SHA --no-edit
+          git push origin master --force
+      - name: Automerge
+        if: github.ref == 'refs/heads/master'
+        run: |
+          git branch -f develop master
+          git push origin develop --force

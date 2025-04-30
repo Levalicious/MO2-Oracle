@@ -1,0 +1,27 @@
+{
+    "Name": "Oracle",
+    "Author": "Levalicious",
+    "Description": "Automatic mod dependency inference for MO2",
+    "DocsUrl": "",
+    "GithubUrl": "https://github.com/Levalicious/MO2-Oracle",
+    "NexusUrl": "",
+    "Versions": [
+        {
+            "Version": "0.0.0.0a",
+            "Released": "2025-04-29",
+            "MinSupport": "2.5.2",
+            "MaxSupport": "2.5.2",
+            "MinWorking": "2.5.2",
+            "MaxWorking": "2.5.2",
+            "DownloadUrl": "https://github.com/Levalicious/MO2-Oracle/releases/download/v0.0.0.0a/plugin_oracle-0.0.0.0a.zip",
+            "PluginPath": [
+                "plugin_oracle"
+            ],
+            "LocalePath": [],
+            "DataPath": [
+                "data/Oracle"
+            ],
+            "ReleaseNotes": []
+        }
+    ]
+}
