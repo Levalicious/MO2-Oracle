@@ -13,7 +13,7 @@ class OraclePlugin(IPluginTool):
     _organizer: IOrganizer
     _modlist: IModList
     _pluginlist: IPluginList
-    _version: VersionInfo = VersionInfo(0, 0, 0, 0, ReleaseType.ALPHA)
+    _version: VersionInfo = VersionInfo(0, 0, 0, 1, ReleaseType.ALPHA)
 
     def __init__(self) -> None:
         self._log: PluginLogger = PluginLogger(getLogger(__name__), {'name': self.name()})
