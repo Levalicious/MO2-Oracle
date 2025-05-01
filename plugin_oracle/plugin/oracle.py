@@ -108,7 +108,7 @@ class OraclePlugin(IPluginTool):
         game = os.path.basename(game)
         if game.endswith('.exe'):
             game = game[:-4]
-        whitelist: list[str] = ['skse64_loader']
+        whitelist: list[str] = ['skse64_loader', 'obse64_loader']
         self._log.info(f'{game} : {code}')
         if game in whitelist:
             res = code == 0
