@@ -13,7 +13,7 @@ class OraclePlugin(IPluginTool):
     _organizer: IOrganizer
     _modlist: IModList
     _pluginlist: IPluginList
-    _version: VersionInfo = VersionInfo(0, 0, 0, 0, ReleaseType.ALPHA)
+    _version: VersionInfo = VersionInfo(0, 0, 0, 1, ReleaseType.ALPHA)
 
     def __init__(self) -> None:
         self._log: PluginLogger = PluginLogger(getLogger(__name__), {'name': self.name()})
@@ -108,7 +108,7 @@ class OraclePlugin(IPluginTool):
         game = os.path.basename(game)
         if game.endswith('.exe'):
             game = game[:-4]
-        whitelist: list[str] = ['skse64_loader']
+        whitelist: list[str] = ['skse64_loader', 'obse64_loader']
         self._log.info(f'{game} : {code}')
         if game in whitelist:
             res = code == 0
