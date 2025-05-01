@@ -21,7 +21,7 @@ class OraclePlugin(IPluginTool):
 
     def checkversion(self, silent: bool = False) -> bool:
         minversion: VersionInfo = VersionInfo(2, 5, 2)
-        maxversion: VersionInfo = VersionInfo(2, 5, 2)
+        maxversion: VersionInfo = VersionInfo(2, 5, 3)
         exceptions: list[VersionInfo] = []
 
         appVersion = self._organizer.appVersion()
