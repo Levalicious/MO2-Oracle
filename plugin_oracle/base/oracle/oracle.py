@@ -1,7 +1,6 @@
 from random import shuffle
 from mobase import IModList, IOrganizer, IModInterface, IPluginList # pyright: ignore [reportMissingModuleSource]
 from plugin_oracle.util.mod.mo2 import modhash, esshash, allMods, setHash, getHash, isActive, isEssential
-from plugin_oracle.util.ml.graph import random_toposort
 from plugin_oracle.base.db import MDB
 from plugin_oracle.util.log import PluginLogger, getLogger
 from plugin_oracle.base.sync import pluginsync
@@ -94,7 +93,7 @@ class Oracle:
 
     def sample(self, mlist: IModList, plist: IPluginList, organizer: IOrganizer) -> None:
         t0 = time()
-        ld = random_toposort(self.db.mod._fsets)
+        ld = self.db.mod.rtoposort(True)
         if ld is None:
             self._log.warning('Failed to find a topological sort!')
             return

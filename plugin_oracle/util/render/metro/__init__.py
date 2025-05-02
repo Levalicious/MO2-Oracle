@@ -1,5 +1,7 @@
 from plugin_oracle.util.render.metro.color import palette
 from plugin_oracle.util.render.metro.plot import AbstractPlot, AbstractColumn
+from plugin_oracle.base.db import MSet, HasHashAndInd
+
 import math
 import re
 from dataclasses import dataclass
@@ -136,6 +138,35 @@ class MetroRender:
             for p in pred.get(nd, []):
                 row.add_input(p)
             row.add_node(nd, len(succ.get(nd, [])))
+        return MetroRender(config, plot.colors, plot, -plot.columns.start)
+
+    @staticmethod
+    def from_mset(
+        config: MetroConfig,
+        order: list[bytes],
+        mset: MSet[HasHashAndInd]
+    ) -> "MetroRender":
+        # Compute predecessors
+        pred: dict[bytes, list[bytes]] = {}
+        for m in mset.U.keys():
+            adj = mset[m][1]
+            if adj is None:
+                continue
+            for p in adj:
+                pred.setdefault(p, []).append(m)
+        plot: AbstractPlot[bytes] = AbstractPlot[bytes]()
+        for nd in order:
+            m = mset[nd][0]
+            if m is None:
+                raise ValueError(f"Missing mod {nd} in MSet")
+            row = plot.add_row(m.name)
+            for p in pred.get(nd, []):
+                row.add_input(p)
+            adj = mset[nd][1]
+            if adj is None:
+                row.add_node(nd, 0)
+            else:
+                row.add_node(nd, len(adj))
         return MetroRender(config, plot.colors, plot, -plot.columns.start)
 
     def __init__(

@@ -1,5 +1,6 @@
 import os
 import pickle
+import random
 from typing import TypeVar, Generic, Protocol
 
 from plugin_oracle.util.mod.mod import Mod
@@ -7,7 +8,6 @@ from plugin_oracle.util.mod.mod import Mod
 class HasHashAndInd(Protocol):
     hash: bytes
     name: str
-    def __init__(self: 'HasHashAndInd', hash: bytes) -> None: ...
 
 T = TypeVar('T', bound=HasHashAndInd)
 
@@ -63,6 +63,46 @@ class MSet(Generic[T]):
             fset = self._fsets[perm[i]] if state else self._isets[perm[i]]
             for j in range(i):
                 fset.discard(perm[j])
+    
+    def rtoposort(self, state: bool, seed: int = 0) -> list[bytes] | None:
+        adj = self._fsets if state else self._isets
+        indegree = {k: 0 for k in adj}
+        for vs in adj.values():
+            for v in vs:
+                indegree[v] = indegree.get(v, 0) + 1
+        queue = [k for k, deg in indegree.items() if deg == 0]
+        L: list[bytes] = []
+        random.seed(seed)
+        while queue:
+            n = queue.pop(random.randrange(len(queue)))
+            L.append(n)
+            for m in adj.get(n, set()):
+                indegree[m] -= 1
+                if indegree[m] == 0:
+                    queue.append(m)
+        random.seed()
+        if len(L) != len(indegree):
+            return None
+        return L
+    
+    def toposort(self, state: bool) -> list[bytes] | None:
+        adj = self._fsets if state else self._isets
+        indegree = {k: 0 for k in adj}
+        for vs in adj.values():
+            for v in vs:
+                indegree[v] = indegree.get(v, 0) + 1
+        queue = [k for k, deg in indegree.items() if deg == 0]
+        L: list[bytes] = []
+        while queue:
+            n = queue.pop()
+            L.append(n)
+            for m in adj.get(n, set()):
+                indegree[m] -= 1
+                if indegree[m] == 0:
+                    queue.append(m)
+        if len(L) != len(indegree):
+            return None
+        return L
 
 class MDB:
     _fname: str = '/db_0.pkl'

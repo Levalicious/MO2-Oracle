@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget, QTabWidget, QVBoxLayout, QLabel, QPushButto
 from typing import Callable
 
 from plugin_oracle.base.oracle.oracle import Oracle
-from plugin_oracle.util.ml.graph import random_toposort
+from plugin_oracle.base.db import HasHashAndInd, MSet
 from plugin_oracle.util.render.metro import MetroRender, MetroConfig
 
 class OracleWidget(QWidget):
@@ -22,21 +22,12 @@ class OracleWidget(QWidget):
         layouts: list[QVBoxLayout] = [QVBoxLayout()]
         tabnames: list[str] = ['Graph']
 
-        fsets = self.oracle.db.mod._fsets
-        hmap = {m.hash: m.name for m in self.oracle.db.mod.U.values()}
-        tsort = random_toposort(fsets)
+        tsort = self.oracle.db.mod.rtoposort(True)
         if tsort is None:
             label = QLabel("Cannot render: the mod graph contains a cycle.")
             layouts[0].addWidget(label)
         else:
-            edgelist: list[tuple[bytes, bytes]] = []
-            perm = self.permutation()
-            for hash in perm:
-                for f in fsets[hash]:
-                    if f in perm:
-                        edgelist.append((hash, f))
-            label_dict = {k: hmap.get(k, k.hex()) for k in fsets.keys()}
-            graph_widget = OracleGraph(edgelist, label_dict)
+            graph_widget = OracleGraph(tsort, self.oracle.db.mod) # pyright: ignore [reportArgumentType]
             layouts[0].addWidget(graph_widget)
         for i in range(len(tabs)):
             tabs[i].setLayout(layouts[i])
@@ -75,10 +66,10 @@ class OracleWidget(QWidget):
             _ = QMessageBox.warning(self, "Predict Error", str(e))
 
 class OracleGraph(QWidget):
-    def __init__(self, edgelist: list[tuple[bytes, bytes]], label_dict: dict[bytes, str], parent: QWidget | None = None) -> None:
+    def __init__(self, order: list[bytes], mset: MSet[HasHashAndInd], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.config: MetroConfig = MetroConfig()
-        self.renderer: MetroRender = MetroRender.from_edgelist_and_labels(self.config, edgelist, label_dict)
+        self.renderer: MetroRender = MetroRender.from_mset(self.config, order, mset)
         self._scale: float = 4.0
         self._offset_x: float = 100
         self._offset_y: float = 0
