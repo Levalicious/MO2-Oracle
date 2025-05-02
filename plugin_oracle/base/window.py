@@ -22,8 +22,8 @@ class OracleWidget(QWidget):
         layouts: list[QVBoxLayout] = [QVBoxLayout()]
         tabnames: list[str] = ['Graph']
 
-        fsets = self.oracle.db.fsets
-        hmap = {m.hash: m.name for m in self.oracle.db.mods.values()}
+        fsets = self.oracle.db.mod._fsets
+        hmap = {m.hash: m.name for m in self.oracle.db.mod.U.values()}
         tsort = random_toposort(fsets)
         if tsort is None:
             label = QLabel("Cannot render: the mod graph contains a cycle.")

@@ -11,6 +11,8 @@ import os
 from plugin_oracle.base.oracle.chresmolyte import Chresmolyte
 from hashlib import sha256
 
+from plugin_oracle.util.mod.mod import Mod
+
 class Oracle:
     def __init__(self, path: str = '') -> None:
         self._log: PluginLogger = PluginLogger(getLogger(__name__), {'name': 'Oracle'})
@@ -25,7 +27,7 @@ class Oracle:
     
     def load(self) -> None:
         self.db.load(self.path)
-
+        
     def addMod(self, mod: IModInterface, organizer: IOrganizer) -> bytes | None:
         try:
             hash = modhash(mod, organizer)
@@ -65,11 +67,13 @@ class Oracle:
     def resolve(self, mlist: IModList, organizer: IOrganizer, verbose: bool = True) -> None:
         t0 = time()
         vers = sha256(organizer.managedGame().gameVersion().encode('ascii')).digest()
-        gm = self.db.mod_req(vers)
+        gm: Mod = self.db.mod.U.get(vers, Mod(vers))
+        self.db.mod.addU(gm)
         gm.name = f'{organizer.managedGame().gameName()} : {organizer.managedGame().gameVersion()}'
         mods = self._resolve(mlist, organizer, verbose)
         for mod in mods:
-            m = self.db.mod_req(mod[0])
+            m = self.db.mod.U.get(mod[0], Mod(mod[0]))
+            self.db.mod.addU(m)
             m.name = mod[1].name()
         t1 = time()
         self._log.info(f'Resolved mods in {t1 - t0}s')
@@ -84,22 +88,20 @@ class Oracle:
     def observe(self, result: bool, mlist: IModList, organizer: IOrganizer) -> None:
         t0 = time()
         loadorder = self.permutation(mlist, organizer)
-        for i in range(len(loadorder)):
-            fset = self.db.fset(loadorder[i], result)
-            if fset is None:
-                raise ValueError(f"Mod with hash {loadorder[i]} not found")
-            for j in range(i):
-                fset.discard(loadorder[j])
+        self.db.mod.permutation(loadorder, result)
         t1 = time()
         self._log.info(f'Recorded run in {t1 - t0}s')
 
     def sample(self, mlist: IModList, plist: IPluginList, organizer: IOrganizer) -> None:
         t0 = time()
-        order = random_toposort(self.db.fsets)
-        if order is None:
+        ld = random_toposort(self.db.mod._fsets)
+        if ld is None:
             self._log.warning('Failed to find a topological sort!')
             return
-        order = [self.db.mod_req(h).name for h in order][1:]
+        order: list[str] = []
+        for h in ld:
+            order.append(self.db.mod.U[h].name)
+        order = order[1:]
         for i in range(len(order)):
             _ = mlist.setPriority(order[i], i)
         pluginsync(organizer, mlist, plist)
@@ -108,8 +110,12 @@ class Oracle:
 
     def samplerandom(self, mlist: IModList, plist: IPluginList, organizer: IOrganizer) -> None:
         t0 = time()
-        order = self.permutation(mlist, organizer)[1:]
-        order = [self.db.mod_req(h).name for h in order]
+        ld = self.permutation(mlist, organizer)[1:]
+        order: list[str] = []
+        for h in ld:
+            m: Mod = self.db.mod.U.get(h, Mod(h))
+            self.db.mod.addU(m)
+            order.append(m.name)
         shuffle(order)
         for i in range(len(order)):
             _ = mlist.setPriority(order[i], i)
@@ -121,10 +127,14 @@ class Oracle:
         loadorder = self.permutation(mlist, organizer)
         report: list[tuple[str, str]] = []
         for i, hash in enumerate(loadorder):
-            fset = self.db.fset(hash)
+            _, fset, _ = self.db.mod[hash]
             for j in range(i + 1, len(loadorder)):
                 if fset is None or loadorder[j] not in fset:
-                    report.append((self.db.mod_req(hash).name, self.db.mod_req(loadorder[j]).name))
+                    m0: Mod = self.db.mod.U.get(hash, Mod(hash))
+                    m1: Mod = self.db.mod.U.get(loadorder[j], Mod(loadorder[j]))
+                    self.db.mod.addU(m0)
+                    self.db.mod.addU(m1)
+                    report.append((m0.name, m1.name))
         sreport = ''
         for pair in report:
             sreport += f'{pair[0]} -> {pair[1]}\n'

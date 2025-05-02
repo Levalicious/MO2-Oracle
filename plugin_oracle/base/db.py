@@ -1,62 +1,84 @@
 import os
 import pickle
+from typing import TypeVar, Generic, Protocol
 
-from plugin_oracle.util.mod import Mod
+from plugin_oracle.util.mod.mod import Mod
+
+class HasHashAndInd(Protocol):
+    hash: bytes
+    name: str
+    def __init__(self: 'HasHashAndInd', hash: bytes) -> None: ...
+
+T = TypeVar('T', bound=HasHashAndInd)
+
+class MSet(Generic[T]):
+    def __init__(self) -> None:
+        self._U: dict[bytes, T] = {}
+        self._fsets: dict[bytes, set[bytes]] = {}
+        self._isets: dict[bytes, set[bytes]] = {}
+        self._bound: tuple[list[bytes], list[bytes]] = ([], [])
+
+    @property
+    def U(self) -> dict[bytes, T]:
+        return self._U
+
+    @property
+    def min(self) -> list[bytes]:
+        return self._bound[0]
+
+    @property
+    def max(self) -> list[bytes]:
+        return self._bound[1]
+    
+    def __getitem__(self, hash: bytes) -> tuple[T | None, set[bytes] | None, set[bytes] | None]:
+        return (self._U.get(hash, None), self._fsets.get(hash, None), self._isets.get(hash, None))
+
+    def addU(self, v: T) -> None:
+        if v.hash in self._U:
+            return
+        self._U[v.hash] = v
+        self._fsets[v.hash] = self._fsets.get(v.hash, set())
+        self._fsets[v.hash].update(self._U.keys())
+        self._fsets[v.hash].discard(v.hash)
+        for k in self._U.keys():
+            if k != v.hash:
+                self._fsets[k].add(v.hash)
+        self._isets[v.hash] = self._isets.get(v.hash, set())
+        self._isets[v.hash].update(self._U.keys())
+        self._isets[v.hash].discard(v.hash)
+        for k in self._U.keys():
+            if k != v.hash:
+                self._isets[k].add(v.hash)
+    
+    def permutation(self, perm: list[bytes], state: bool) -> None:
+        if any(hash not in self._U for hash in perm):
+            raise ValueError('Unfiltered permutation encountered')
+        if state:
+            if perm < self._bound[0]:
+                self._bound = (perm, self._bound[1])
+            if perm > self._bound[1]:
+                self._bound = (self._bound[0], perm)
+
+        for i in range(len(perm)):
+            fset = self._fsets[perm[i]] if state else self._isets[perm[i]]
+            for j in range(i):
+                fset.discard(perm[j])
 
 class MDB:
-    _fname: str = '/db.pkl'
+    _fname: str = '/db_0.pkl'
 
     def __init__(self) -> None:
-        self.mods: dict[bytes, Mod] = {}
-        self.fsets: dict[bytes, set[bytes]] = {}
-        self._isets: dict[bytes, set[bytes]] = {}
-
-    def fset(self, hash: bytes, inv: bool = True) -> set[bytes] | None:
-        if not inv:
-            return self._isets.get(hash, None)
-        return self.fsets.get(hash, None)
-    
-    def mod(self, hash: bytes, create: bool = False) -> Mod | None:
-        m = self.mods.get(hash, None)
-        if m is None:
-            if not create:
-                return None
-            m = Mod(hash)
-            self.mods[hash] = m
-            self.fsets[hash] = self.fsets.get(hash, set())
-            self.fsets[hash].update(self.mods.keys())
-            self.fsets[hash].discard(hash)
-            for k in self.mods.keys():
-                if k != hash:
-                    self.fsets[k].add(hash)
-            self._isets[hash] = self._isets.get(hash, set())
-            self._isets[hash].update(self.mods.keys())
-            self._isets[hash].discard(hash)
-            for k in self.mods.keys():
-                if k != hash:
-                    self._isets[k].add(hash)
-        return m
-
-    def mod_req(self, hash: bytes) -> Mod:
-        mod = self.mod(hash, True)
-        if mod is None:
-            raise ValueError(f"Mod with hash {hash} not found")
-        return mod
+        self.mod: MSet[Mod] = MSet[Mod]()
     
     def save(self, path: str) -> None:
         os.makedirs(path, exist_ok=True)
-        # Serialize as a tuple: (mods, fsets)
-        dat: tuple[list[Mod], dict[bytes, set[bytes]], dict[bytes, set[bytes]]] = (list(self.mods.values()), self.fsets, self._isets)
+        dat = self.mod
         with open(path + MDB._fname, 'wb') as f:
             pickle.dump(dat, f)
-
+    
     def load(self, path: str) -> None:
         path += MDB._fname
         if os.path.exists(path):
             with open(path, 'rb') as f:
-                dat: tuple[list[Mod], dict[bytes, set[bytes]], dict[bytes, set[bytes]]] = pickle.load(f) # pyright: ignore [reportAny]
-                mods, fsets, isets = dat
-                self.mods = {m.hash: m for m in mods}
-                self.fsets = fsets
-                self._isets = isets
-
+                dat: MSet[Mod] = pickle.load(f)  # pyright: ignore [reportAny]
+                self.mod = dat
