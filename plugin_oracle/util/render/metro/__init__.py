@@ -150,23 +150,16 @@ class MetroRender:
         pred: dict[bytes, list[bytes]] = {}
         for m in mset.U.keys():
             adj = mset[m][1]
-            if adj is None:
-                continue
             for p in adj:
                 pred.setdefault(p, []).append(m)
         plot: AbstractPlot[bytes] = AbstractPlot[bytes]()
         for nd in order:
             m = mset[nd][0]
-            if m is None:
-                raise ValueError(f"Missing mod {nd} in MSet")
             row = plot.add_row(m.name)
             for p in pred.get(nd, []):
                 row.add_input(p)
             adj = mset[nd][1]
-            if adj is None:
-                row.add_node(nd, 0)
-            else:
-                row.add_node(nd, len(adj))
+            row.add_node(nd, len(adj))
         return MetroRender(config, plot.colors, plot, -plot.columns.start)
 
     def __init__(
