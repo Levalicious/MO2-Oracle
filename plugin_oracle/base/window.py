@@ -18,17 +18,28 @@ class OracleWidget(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
         tab_widget = QTabWidget()
-        tabs: list[QWidget] = [QWidget()]
-        layouts: list[QVBoxLayout] = [QVBoxLayout()]
-        tabnames: list[str] = ['Graph']
+        tabs: list[QWidget] = [QWidget(), QWidget()]
+        layouts: list[QVBoxLayout] = [QVBoxLayout(), QVBoxLayout()]
+        tabnames: list[str] = ['Graph', 'Bounds']
 
-        tsort = self.oracle.db.mod.rtoposort(True)
+        graph = self.oracle.db.mod.edrop()
+        tsort = graph.toposort()
         if tsort is None:
             label = QLabel("Cannot render: the mod graph contains a cycle.")
             layouts[0].addWidget(label)
         else:
-            graph_widget = OracleGraph(tsort, self.oracle.db.mod) # pyright: ignore [reportArgumentType]
+            graph_widget = OracleGraph(tsort, graph) # pyright: ignore [reportArgumentType]
             layouts[0].addWidget(graph_widget)
+        
+        elist = self.oracle.db.mod.assemble()
+        if not elist:
+            label = QLabel("Cannot render: the mod graph is empty.")
+            layouts[1].addWidget(label)
+        else:
+            labels = {k: v.name for k, v in self.oracle.db.mod.U.items()}
+            bound_graph_widget = OracleGraph.from_elist(elist, labels)
+            layouts[1].addWidget(bound_graph_widget)
+
         for i in range(len(tabs)):
             tabs[i].setLayout(layouts[i])
             _ = tab_widget.addTab(tabs[i], tabnames[i])
@@ -66,10 +77,22 @@ class OracleWidget(QWidget):
             _ = QMessageBox.warning(self, "Predict Error", str(e))
 
 class OracleGraph(QWidget):
-    def __init__(self, order: list[bytes], mset: MSet[HasHashAndInd], parent: QWidget | None = None) -> None:
+    @staticmethod
+    def from_mset(order: list[bytes], mset: MSet[HasHashAndInd]) -> 'OracleGraph':
+        config: MetroConfig = MetroConfig()
+        renderer: MetroRender = MetroRender.from_mset(config, order, mset)
+        return OracleGraph(config, renderer)
+    
+    @staticmethod
+    def from_elist(elist: list[tuple[bytes, bytes]], labels: dict[bytes, str]) -> 'OracleGraph':
+        config: MetroConfig = MetroConfig()
+        renderer: MetroRender = MetroRender.from_edgelist_and_labels(config, elist, labels)
+        return OracleGraph(config, renderer)
+    
+    def __init__(self, config: MetroConfig, renderer: MetroRender, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.config: MetroConfig = MetroConfig()
-        self.renderer: MetroRender = MetroRender.from_mset(self.config, order, mset)
+        self.config: MetroConfig = config
+        self.renderer: MetroRender = renderer
         self._scale: float = 4.0
         self._offset_x: float = 100
         self._offset_y: float = 0

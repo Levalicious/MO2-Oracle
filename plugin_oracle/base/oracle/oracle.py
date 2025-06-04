@@ -93,7 +93,7 @@ class Oracle:
 
     def sample(self, mlist: IModList, plist: IPluginList, organizer: IOrganizer) -> None:
         t0 = time()
-        ld = self.db.mod.rtoposort(True)
+        ld = self.db.mod.edrop().rtoposort()
         if ld is None:
             self._log.warning('Failed to find a topological sort!')
             return
@@ -126,9 +126,9 @@ class Oracle:
         loadorder = self.permutation(mlist, organizer)
         report: list[tuple[str, str]] = []
         for i, hash in enumerate(loadorder):
-            _, fset, _ = self.db.mod[hash]
+            _, fset = self.db.mod[hash]
             for j in range(i + 1, len(loadorder)):
-                if fset is None or loadorder[j] not in fset:
+                if loadorder[j] not in fset:
                     m0: Mod = self.db.mod.U.get(hash, Mod(hash))
                     m1: Mod = self.db.mod.U.get(loadorder[j], Mod(loadorder[j]))
                     self.db.mod.addU(m0)
